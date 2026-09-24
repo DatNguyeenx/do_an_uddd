@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -102,6 +103,16 @@ class PostProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
+=======
+import 'package:flutter/material.dart';
+import '../data/posts_data.dart';
+
+class PostProvider extends ChangeNotifier {
+  // Lấy dữ liệu bài viết ban đầu
+  final List<Post> _posts = samplePosts;
+
+  List<Post> get posts => _posts;
+>>>>>>> 250514a1eb6d282f5bbe3449101cb137c332e346
 
   // Hàm chuyển đổi trạng thái Thích (Like)
   void toggleLike(String postId) {
@@ -109,6 +120,11 @@ class PostProvider extends ChangeNotifier {
     if (index != -1) {
       _posts[index].isLiked = !_posts[index].isLiked;
       _posts[index].likeCount += _posts[index].isLiked ? 1 : -1;
+<<<<<<< HEAD
+=======
+
+      // Báo cho tất cả các Widget đang lắng nghe (PostsPage, PostDetailPage...) cập nhật lại UI
+>>>>>>> 250514a1eb6d282f5bbe3449101cb137c332e346
       notifyListeners();
     }
   }
@@ -118,6 +134,7 @@ class PostProvider extends ChangeNotifier {
     final index = _posts.indexWhere((p) => p.id == postId);
     if (index != -1) {
       _posts[index].isBookMarked = !_posts[index].isBookMarked;
+<<<<<<< HEAD
       notifyListeners();
     }
   }
@@ -129,3 +146,10 @@ class PostProvider extends ChangeNotifier {
     super.dispose();
   }
 }
+=======
+
+      notifyListeners();
+    }
+  }
+}
+>>>>>>> 250514a1eb6d282f5bbe3449101cb137c332e346

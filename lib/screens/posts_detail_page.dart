@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../widgets/comments_bottom_sheet.dart';
 import '../provider/comment_provider.dart';
+<<<<<<< HEAD
+=======
+
+>>>>>>> 250514a1eb6d282f5bbe3449101cb137c332e346
 import '../provider/post_provider.dart';
 
 class PostDetailPage extends StatelessWidget {
@@ -196,7 +200,12 @@ class PostDetailPage extends StatelessWidget {
               onPressed: () {
                 showModalBottomSheet(
                   context: context,
+<<<<<<< HEAD
                   isScrollControlled: true,
+=======
+                  isScrollControlled:
+                      true, // Giúp nâng khung khi bàn phím hiện lên
+>>>>>>> 250514a1eb6d282f5bbe3449101cb137c332e346
                   backgroundColor: Colors.transparent,
                   builder: (context) => CommentsBottomSheet(postId: post.id),
                 );
@@ -222,4 +231,8 @@ class PostDetailPage extends StatelessWidget {
       ),
     );
   }
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> 250514a1eb6d282f5bbe3449101cb137c332e346

@@ -5,6 +5,7 @@ import 'provider/post_provider.dart';
 import 'provider/profile_provider.dart';
 import 'screens/login_screen.dart';
 import 'screens/main_navigation_screen.dart';
+<<<<<<< HEAD
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 void main() async{
@@ -18,6 +19,10 @@ void main() async{
   runApp(const VietDiApp());
 
 } 
+=======
+
+void main() => runApp(const VietDiApp());
+>>>>>>> 250514a1eb6d282f5bbe3449101cb137c332e346
 
 /// Chỉ một MaterialApp, chỉ một bộ provider cho tất cả màn hình.
 class VietDiApp extends StatelessWidget {
