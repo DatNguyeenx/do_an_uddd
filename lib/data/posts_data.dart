@@ -23,6 +23,32 @@ class Post {
     this.likeCount = 124,
     this.isBookMarked = false,
   });
+<<<<<<< HEAD
+
+  factory Post.fromJson(Map<String, dynamic> json) {
+    // Đọc danh sách categories hoặc tags từ Supabase
+    List<String> parsedCategories = [];
+    if (json['categories'] != null) {
+      parsedCategories = List<String>.from(json['categories']);
+    } else if (json['tags'] != null) {
+      parsedCategories = List<String>.from(json['tags']);
+    }
+
+    return Post(
+      id: json['id']?.toString() ?? '',
+      title: json['title'] ?? '',
+      author: json['author'] ?? '',
+      date: json['date'] ?? '',
+      summary: json['summary'] ?? '',
+      content: json['content'] ?? '',
+      categories: parsedCategories,
+      isLiked: json['is_liked'] ?? json['isLiked'] ?? false,
+      likeCount: json['like_count'] ?? json['likeCount'] ?? 0,
+      isBookMarked: json['is_bookmarked'] ?? json['isBookMarked'] ?? false,
+    );
+  }
+}
+=======
 }
 
 List<Post> samplePosts = [
@@ -248,3 +274,4 @@ List<Post> samplePosts = [
     categories: ['Kinh nghiệm'],
   ),
 ];
+>>>>>>> 250514a1eb6d282f5bbe3449101cb137c332e346

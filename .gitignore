@@ -46,3 +46,10 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+<<<<<<< HEAD
+
+# Android Gradle cache
+.gradle/
+android/.gradle/
+=======
+>>>>>>> 250514a1eb6d282f5bbe3449101cb137c332e346
