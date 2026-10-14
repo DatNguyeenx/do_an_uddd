@@ -10,6 +10,7 @@ class Post {
   bool isLiked;
   int likeCount;
   bool isBookMarked;
+  final bool isCommunity;
 
   Post({
     required this.id,
@@ -22,6 +23,7 @@ class Post {
     this.isLiked = false,
     this.likeCount = 124,
     this.isBookMarked = false,
+    this.isCommunity = false,
   });
 
 }

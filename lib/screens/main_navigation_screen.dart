@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../data/places_data.dart';
+import 'checkin_page.dart';
+import 'community_feed_page.dart';
 import 'places_pages.dart';
 import 'posts_page.dart';
 import 'profile_screen.dart';
@@ -22,9 +24,16 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   Widget build(BuildContext context) => Scaffold(
         body: SafeArea(
           child: IndexedStack(index: _index, children: [
-            ExplorePage(onToggleFavorite: _toggleFavorite),
+            ExplorePage(
+              onToggleFavorite: _toggleFavorite,
+              onOpenCheckIn: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const CheckInPage()),
+              ),
+            ),
             FavoritesPage(onToggleFavorite: _toggleFavorite),
             const PostsPage(),
+            const CommunityFeedPage(),
             const ProfileScreen(),
           ]),
         ),
@@ -46,6 +55,10 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                 icon: Icon(Icons.article_outlined),
                 selectedIcon: Icon(Icons.article),
                 label: 'Bài viết'),
+            NavigationDestination(
+                icon: Icon(Icons.forum_outlined),
+                selectedIcon: Icon(Icons.forum),
+                label: 'Cộng đồng'),
             NavigationDestination(
                 icon: Icon(Icons.person_outline),
                 selectedIcon: Icon(Icons.person),

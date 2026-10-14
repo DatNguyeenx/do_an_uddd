@@ -1,13 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import 'services/app_initializer.dart';
+import 'screens/map_screen.dart';
+
 import 'provider/comment_provider.dart';
+import 'provider/admin_provider.dart';
+import 'provider/checkin_provider.dart';
 import 'provider/post_provider.dart';
 import 'provider/profile_provider.dart';
 import 'screens/login_screen.dart';
 import 'screens/main_navigation_screen.dart';
+import 'screens/admin_dashboard.dart';
 
-void main() => runApp(const MyApp());
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await AppInitializer.initialize();
+  runApp(const MyApp());
+}
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -17,6 +27,8 @@ class MyApp extends StatelessWidget {
       ChangeNotifierProvider(create: (_) => ProfileProvider()),
       ChangeNotifierProvider(create: (_) => PostProvider()),
       ChangeNotifierProvider(create: (_) => CommentProvider()),
+      ChangeNotifierProvider(create: (_) => AdminProvider()),
+      ChangeNotifierProvider(create: (_) => CheckInProvider()),
     ],
     child: MaterialApp(
       debugShowCheckedModeBanner: false,
@@ -31,6 +43,8 @@ class MyApp extends StatelessWidget {
       routes: {
         '/login': (_) => const LoginScreen(),
         '/home': (_) => const MainNavigationScreen(),
+        '/admin': (_) => const AdminDashboard(),
+        '/map': (_) => const MapScreen(),
       },
     ),
   );

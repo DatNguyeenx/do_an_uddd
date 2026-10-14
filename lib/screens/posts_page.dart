@@ -123,8 +123,9 @@ class _PostsPageState extends State<PostsPage> {
   @override
   Widget build(BuildContext context) {
     final postProvider = Provider.of<PostProvider>(context);
+    final articlePosts = postProvider.posts.where((post) => !post.isCommunity).toList();
 
-    final filteredPosts = postProvider.posts.where((post) {
+    final filteredPosts = articlePosts.where((post) {
       final matchesCategory = _selectedCategories.isEmpty ||
           _selectedCategories.contains('Tất cả') ||
           post.categories.any(
@@ -306,11 +307,11 @@ class _PostsPageState extends State<PostsPage> {
                     child: ListView.builder(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       scrollDirection: Axis.horizontal,
-                      itemCount: postProvider.posts.length > 3
+                      itemCount: articlePosts.length > 3
                           ? 3
-                          : postProvider.posts.length,
+                          : articlePosts.length,
                       itemBuilder: (context, index) {
-                        final post = postProvider.posts[index];
+                        final post = articlePosts[index];
                         return _buildFeaturedCard(context, post);
                       },
                     ),

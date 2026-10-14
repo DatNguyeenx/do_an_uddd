@@ -53,6 +53,12 @@ class CommentProvider extends ChangeNotifier {
     return total;
   }
 
+  void removeCommentsForPost(String postId) {
+    final lengthBefore = _comments.length;
+    _comments.removeWhere((comment) => comment.postId == postId);
+    if (_comments.length != lengthBefore) notifyListeners();
+  }
+
   // 📍 Thêm Bình luận mới hoặc Trả lời (Reply) - Tự động lấy _currentAuthorName mới nhất
   void addComment({
     required String postId,

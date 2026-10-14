@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../data/places_data.dart';
+import '../provider/checkin_provider.dart';
+import 'checkin_page.dart';
 
 String removeVietnameseDiacritics(String str) {
   var withDiacritics =
@@ -184,8 +187,9 @@ class PlaceCard extends StatelessWidget {
 /// Màn hình Khám phá chính chứa: Ô Tìm kiếm gần đúng, Nút Lọc danh mục, Danh sách địa danh
 class ExplorePage extends StatefulWidget {
   final Function(Place) onToggleFavorite;
+  final VoidCallback onOpenCheckIn;
 
-  const ExplorePage({super.key, required this.onToggleFavorite});
+  const ExplorePage({super.key, required this.onToggleFavorite, required this.onOpenCheckIn});
 
   @override
   State<ExplorePage> createState() => _ExplorePageState();
@@ -288,19 +292,26 @@ class _ExplorePageState extends State<ExplorePage> {
                   color: Color(0xFF0F172A),
                 ),
               ),
-              Container(
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border:
-                      Border.all(color: const Color(0xFF0F766E), width: 1.5),
+              Row(children: [
+                IconButton(
+                  tooltip: 'Chỉ đường',
+                  onPressed: () => Navigator.pushNamed(context, '/map'),
+                  icon: const Icon(Icons.map_outlined, color: Color(0xFF0F766E)),
                 ),
-                child: const Icon(
-                  Icons.explore_outlined,
-                  color: Color(0xFF0F766E),
-                  size: 20,
+                IconButton(
+                  tooltip: 'Check-in và lịch sử',
+                  onPressed: widget.onOpenCheckIn,
+                  icon: const Icon(Icons.add_location_alt_outlined, color: Color(0xFF0F766E)),
                 ),
-              )
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: const Color(0xFF0F766E), width: 1.5),
+                  ),
+                  child: const Icon(Icons.explore_outlined, color: Color(0xFF0F766E), size: 20),
+                ),
+              ])
             ],
           ),
           const SizedBox(height: 24),
@@ -630,6 +641,7 @@ class _PlaceDetailPageState extends State<PlaceDetailPage> {
   @override
   Widget build(BuildContext context) {
     final place = widget.place;
+    final hasCheckedIn = context.watch<CheckInProvider>().hasVisited(place.id);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
@@ -784,6 +796,20 @@ class _PlaceDetailPageState extends State<PlaceDetailPage> {
                         fontSize: 14,
                         color: Color(0xFF475569),
                         height: 1.5,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton.icon(
+                        onPressed: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => CheckInPage(initialPlace: place),
+                          ),
+                        ),
+                        icon: Icon(hasCheckedIn ? Icons.check_circle_outline : Icons.add_location_alt_outlined),
+                        label: Text(hasCheckedIn ? 'Check-in thêm lần nữa' : 'Check-in tại đây'),
                       ),
                     ),
                   ],
