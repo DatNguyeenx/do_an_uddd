@@ -12,27 +12,25 @@ class PostsPage extends StatefulWidget {
 }
 
 class _PostsPageState extends State<PostsPage> {
+  // Đã khôi phục lại các biến bị mất do xung đột
   final Set<String> _selectedCategories = {'Tất cả'};
-  final TextEditingController _searchController = TextEditingController();
-  String _searchQuery = '';
-
-  final List<String> _categories = const [
+  final List<String> _categories = [
     'Tất cả',
-    'Kinh nghiệm',
     'Ẩm thực',
     'Địa điểm',
   ];
+  
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
 
   @override
   void initState() {
     super.initState();
-
     _searchController.addListener(() {
       setState(() {
         _searchQuery = _searchController.text;
       });
     });
-
   }
 
   @override
@@ -337,282 +335,282 @@ class _PostsPageState extends State<PostsPage> {
           // Danh sách bài viết hoặc trạng thái trống.
           filteredPosts.isEmpty
               ? SliverFillRemaining(
-                      hasScrollBody: false,
-                      child: Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.article_outlined,
-                              size: 64,
-                              color: Colors.grey.shade300,
-                            ),
-                            const SizedBox(height: 12),
-                            const Text(
-                              'Không tìm thấy bài viết nào',
-                              style: TextStyle(
-                                fontSize: 15,
-                                color: Color(0xFF64748B),
-                                fontWeight: FontWeight.w500,
-                              ),
+                  hasScrollBody: false,
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.article_outlined,
+                          size: 64,
+                          color: Colors.grey.shade300,
+                        ),
+                        const SizedBox(height: 12),
+                        const Text(
+                          'Không tìm thấy bài viết nào',
+                          style: TextStyle(
+                            fontSize: 15,
+                            color: Color(0xFF64748B),
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              : SliverPadding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  sliver: SliverList.builder(
+                    itemCount: filteredPosts.length,
+                    itemBuilder: (context, index) {
+                      final post = filteredPosts[index];
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 16.0),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: const Color(0xFFF1F5F9),
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFF0F172A)
+                                  .withValues(alpha: 0.04),
+                              blurRadius: 16,
+                              offset: const Offset(0, 6),
                             ),
                           ],
                         ),
-                      ),
-                    )
-                  : SliverPadding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                      sliver: SliverList.builder(
-                        itemCount: filteredPosts.length,
-                        itemBuilder: (context, index) {
-                          final post = filteredPosts[index];
-                          return Container(
-                            margin: const EdgeInsets.only(bottom: 16.0),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                color: const Color(0xFFF1F5F9),
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: const Color(0xFF0F172A)
-                                      .withValues(alpha: 0.04),
-                                  blurRadius: 16,
-                                  offset: const Offset(0, 6),
+                        child: Material(
+                          color: Colors.transparent,
+                          borderRadius: BorderRadius.circular(20),
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(20),
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      PostDetailPage(postId: post.id),
                                 ),
-                              ],
-                            ),
-                            child: Material(
-                              color: Colors.transparent,
-                              borderRadius: BorderRadius.circular(20),
-                              child: InkWell(
-                                borderRadius: BorderRadius.circular(20),
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) =>
-                                          PostDetailPage(postId: post.id),
-                                    ),
-                                  );
-                                },
-                                child: Padding(
-                                  padding: const EdgeInsets.all(16.0),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
+                              );
+                            },
+                            child: Padding(
+                              padding: const EdgeInsets.all(16.0),
+                              child: Column(
+                                crossAxisAlignment:
+                                    CrossAxisAlignment.start,
+                                children: [
+                                  // Author Header
+                                  Row(
                                     children: [
-                                      // Author Header
-                                      Row(
-                                        children: [
-                                          CircleAvatar(
-                                            radius: 18,
-                                            backgroundColor:
-                                                const Color(0xFFCCFBF1),
-                                            child: Text(
-                                              post.author.isNotEmpty
-                                                  ? post.author[0]
-                                                  : 'A',
+                                      CircleAvatar(
+                                        radius: 18,
+                                        backgroundColor:
+                                            const Color(0xFFCCFBF1),
+                                        child: Text(
+                                          post.author.isNotEmpty
+                                              ? post.author[0]
+                                              : 'A',
+                                          style: const TextStyle(
+                                            color: Color(0xFF0F766E),
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 10),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              post.author,
                                               style: const TextStyle(
-                                                color: Color(0xFF0F766E),
                                                 fontWeight: FontWeight.bold,
+                                                fontSize: 13,
+                                                color: Color(0xFF0F172A),
                                               ),
                                             ),
-                                          ),
-                                          const SizedBox(width: 10),
-                                          Expanded(
-                                            child: Column(
+                                            Wrap(
                                               crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
+                                                  WrapCrossAlignment.center,
                                               children: [
                                                 Text(
-                                                  post.author,
+                                                  post.date,
                                                   style: const TextStyle(
-                                                    fontWeight: FontWeight.bold,
-                                                    fontSize: 13,
-                                                    color: Color(0xFF0F172A),
+                                                    fontSize: 11,
+                                                    color:
+                                                        Color(0xFF94A3B8),
                                                   ),
                                                 ),
-                                                Wrap(
-                                                  crossAxisAlignment:
-                                                      WrapCrossAlignment.center,
-                                                  children: [
-                                                    Text(
-                                                      post.date,
-                                                      style: const TextStyle(
-                                                        fontSize: 11,
-                                                        color:
-                                                            Color(0xFF94A3B8),
-                                                      ),
-                                                    ),
-                                                    const SizedBox(width: 6),
-                                                    const Text(
-                                                      '•',
-                                                      style: TextStyle(
-                                                        fontSize: 10,
-                                                        color:
-                                                            Color(0xFF94A3B8),
-                                                      ),
-                                                    ),
-                                                    const SizedBox(width: 6),
-                                                    const Icon(
-                                                      Icons.access_time_rounded,
-                                                      size: 11,
-                                                      color: Color(0xFF94A3B8),
-                                                    ),
-                                                    const SizedBox(width: 2),
-                                                    const Text(
-                                                      '5 phút đọc',
-                                                      style: TextStyle(
-                                                        fontSize: 11,
-                                                        color:
-                                                            Color(0xFF94A3B8),
-                                                      ),
-                                                    ),
-                                                  ],
+                                                const SizedBox(width: 6),
+                                                const Text(
+                                                  '•',
+                                                  style: TextStyle(
+                                                    fontSize: 10,
+                                                    color:
+                                                        Color(0xFF94A3B8),
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 6),
+                                                const Icon(
+                                                  Icons.access_time_rounded,
+                                                  size: 11,
+                                                  color: Color(0xFF94A3B8),
+                                                ),
+                                                const SizedBox(width: 2),
+                                                const Text(
+                                                  '5 phút đọc',
+                                                  style: TextStyle(
+                                                    fontSize: 11,
+                                                    color:
+                                                        Color(0xFF94A3B8),
+                                                  ),
                                                 ),
                                               ],
                                             ),
-                                          ),
-                                          IconButton(
-                                            icon: Icon(
-                                              post.isBookMarked
-                                                  ? Icons.bookmark_rounded
-                                                  : Icons
-                                                      .bookmark_border_rounded,
-                                              color: post.isBookMarked
-                                                  ? const Color(0xFF0F766E)
-                                                  : const Color(0xFF94A3B8),
-                                              size: 20,
-                                            ),
-                                            onPressed: () {
-                                              postProvider
-                                                  .toggleBookmark(post.id);
-                                            },
-                                          ),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 12),
-
-                                      // Post Content Title & Summary
-                                      Text(
-                                        post.title,
-                                        style: const TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold,
-                                          color: Color(0xFF0F172A),
-                                          height: 1.35,
+                                          ],
                                         ),
                                       ),
-                                      const SizedBox(height: 6),
-                                      Text(
-                                        post.summary,
-                                        maxLines: 2,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: const TextStyle(
-                                          fontSize: 13,
-                                          color: Color(0xFF64748B),
-                                          height: 1.4,
+                                      IconButton(
+                                        icon: Icon(
+                                          post.isBookMarked
+                                              ? Icons.bookmark_rounded
+                                              : Icons
+                                                  .bookmark_border_rounded,
+                                          color: post.isBookMarked
+                                              ? const Color(0xFF0F766E)
+                                              : const Color(0xFF94A3B8),
+                                          size: 20,
                                         ),
+                                        onPressed: () {
+                                          postProvider
+                                              .toggleBookmark(post.id);
+                                        },
                                       ),
-                                      const SizedBox(height: 16),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 12),
 
-                                      // Tags & Actions Row
-                                      Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          Expanded(
-                                            child: Wrap(
-                                              spacing: 6,
-                                              runSpacing: 4,
-                                              children:
-                                                  (post.categories as List)
-                                                      .map((cat) {
-                                                return Container(
-                                                  padding:
-                                                      const EdgeInsets.symmetric(
-                                                    horizontal: 8,
-                                                    vertical: 3,
-                                                  ),
-                                                  decoration: BoxDecoration(
-                                                    color:
-                                                        const Color(0xFFCCFBF1),
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                            6),
-                                                  ),
-                                                  child: Text(
-                                                    '#$cat',
-                                                    style: const TextStyle(
-                                                      fontSize: 11,
-                                                      color: Color(0xFF0F766E),
-                                                      fontWeight:
-                                                          FontWeight.w600,
-                                                    ),
-                                                  ),
-                                                );
-                                              }).toList(),
-                                            ),
-                                          ),
-                                          Row(
-                                            children: [
-                                              InkWell(
+                                  // Post Content Title & Summary
+                                  Text(
+                                    post.title,
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF0F172A),
+                                      height: 1.35,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    post.summary,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      color: Color(0xFF64748B),
+                                      height: 1.4,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 16),
+
+                                  // Tags & Actions Row
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Expanded(
+                                        child: Wrap(
+                                          spacing: 6,
+                                          runSpacing: 4,
+                                          children:
+                                              (post.categories as List)
+                                                  .map((cat) {
+                                            return Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                horizontal: 8,
+                                                vertical: 3,
+                                              ),
+                                              decoration: BoxDecoration(
+                                                color:
+                                                    const Color(0xFFCCFBF1),
                                                 borderRadius:
-                                                    BorderRadius.circular(12),
-                                                onTap: () {
-                                                  postProvider
-                                                      .toggleLike(post.id);
-                                                },
-                                                child: Padding(
-                                                  padding:
-                                                      const EdgeInsets.symmetric(
-                                                    horizontal: 6,
-                                                    vertical: 4,
-                                                  ),
-                                                  child: Row(
-                                                    children: [
-                                                      Icon(
-                                                        post.isLiked
-                                                            ? Icons
-                                                                .favorite_rounded
-                                                            : Icons
-                                                                .favorite_border_rounded,
-                                                        size: 16,
-                                                        color: post.isLiked
-                                                            ? Colors.redAccent
-                                                            : const Color(
-                                                                0xFF64748B),
-                                                      ),
-                                                      const SizedBox(width: 4),
-                                                      Text(
-                                                        '${post.likeCount}',
-                                                        style: const TextStyle(
-                                                          fontSize: 12,
-                                                          color:
-                                                              Color(0xFF64748B),
-                                                          fontWeight:
-                                                              FontWeight.w500,
-                                                        ),
-                                                      ),
-                                                    ],
-                                                  ),
+                                                    BorderRadius.circular(
+                                                        6),
+                                              ),
+                                              child: Text(
+                                                '#$cat',
+                                                style: const TextStyle(
+                                                  fontSize: 11,
+                                                  color: Color(0xFF0F766E),
+                                                  fontWeight:
+                                                      FontWeight.w600,
                                                 ),
                                               ),
-                                            ],
+                                            );
+                                          }).toList(),
+                                        ),
+                                      ),
+                                      Row(
+                                        children: [
+                                          InkWell(
+                                            borderRadius:
+                                                BorderRadius.circular(12),
+                                            onTap: () {
+                                              postProvider
+                                                  .toggleLike(post.id);
+                                            },
+                                            child: Padding(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                horizontal: 6,
+                                                vertical: 4,
+                                              ),
+                                              child: Row(
+                                                children: [
+                                                  Icon(
+                                                    post.isLiked
+                                                        ? Icons
+                                                            .favorite_rounded
+                                                        : Icons
+                                                            .favorite_border_rounded,
+                                                    size: 16,
+                                                    color: post.isLiked
+                                                        ? Colors.redAccent
+                                                        : const Color(
+                                                            0xFF64748B),
+                                                  ),
+                                                  const SizedBox(width: 4),
+                                                  Text(
+                                                    '${post.likeCount}',
+                                                    style: const TextStyle(
+                                                      fontSize: 12,
+                                                      color:
+                                                          Color(0xFF64748B),
+                                                      fontWeight:
+                                                          FontWeight.w500,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
                                           ),
                                         ],
                                       ),
                                     ],
                                   ),
-                                ),
+                                ],
                               ),
                             ),
-                          );
-                        },
-                      ),
-                    ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
         ],
       ),
     );
