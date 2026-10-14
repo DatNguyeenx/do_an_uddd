@@ -24,21 +24,6 @@ class Comment {
     List<Comment>? replies,
   }) : replies = replies ?? [];
 
-
-  factory Comment.fromFirestore(Map<String, dynamic> data, String documentId) {
-    return Comment(
-      id: documentId,
-      postId: data['postId'] ?? '',
-      author: data['author'] ?? 'Ẩn danh',
-      content: data['content'] ?? '',
-      date: data['date'] ?? '',
-      isLiked: data['isLiked'] ?? false,
-      likeCount: data['likeCount'] ?? 0,
-      parentId: data['parentId'],
-      replies: [], // Danh sách replies sẽ được Provider gom nhóm sau khi kéo từ Firestore về
-    );
-  }
-
   Comment copyWith({
     String? id,
     String? postId,

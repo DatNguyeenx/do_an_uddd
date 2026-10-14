@@ -1,8 +1,6 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../data/posts_data.dart'; 
-import '../data/sample_comments.dart';
+
 import '../provider/post_provider.dart';
 import 'posts_detail_page.dart';
 
@@ -14,37 +12,128 @@ class PostsPage extends StatefulWidget {
 }
 
 class _PostsPageState extends State<PostsPage> {
-  // Đổi sang Set để lưu danh sách các category được chọn
+  // Đã khôi phục lại các biến bị mất do xung đột
   final Set<String> _selectedCategories = {'Tất cả'};
-  String _searchQuery = '';
-
   final List<String> _categories = [
     'Tất cả',
-    'Kinh nghiệm',
     'Ẩm thực',
     'Địa điểm',
   ];
+  
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController.addListener(() {
+      setState(() {
+        _searchQuery = _searchController.text;
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  String _getImageUrl(String postId) {
+    final Map<String, String> imageMap = {
+      '1': 'https://images.unsplash.com/photo-1528127269322-539801943592',
+      '2': 'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb',
+      '3': 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1',
+    };
+    return imageMap[postId] ??
+        'https://images.unsplash.com/photo-1528127269322-539801943592';
+  }
+
+  Widget _buildFeaturedCard(BuildContext context, dynamic post) {
+    final imageUrl = _getImageUrl(post.id.toString());
+
+    return Container(
+      width: 280,
+      margin: const EdgeInsets.only(right: 12),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        image: DecorationImage(
+          image: NetworkImage(imageUrl),
+          fit: BoxFit.cover,
+        ),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(16),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => PostDetailPage(postId: post.id),
+              ),
+            );
+          },
+          child: Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.transparent,
+                  Colors.black.withValues(alpha: 0.8),
+                ],
+              ),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.end,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  post.title ?? '',
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  post.author ?? '',
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     final postProvider = Provider.of<PostProvider>(context);
+    final articlePosts = postProvider.posts.where((post) => !post.isCommunity).toList();
 
-    // Cập nhật logic lọc theo đa danh mục
-    final filteredPosts = postProvider.posts.where((post) {
-      // - Nếu chưa chọn gì (isEmpty)
-      // - Hoặc chọn "Tất cả"
-      // - Hoặc bài viết chứa ÍT NHẤT 1 danh mục nằm trong _selectedCategories
+    final filteredPosts = articlePosts.where((post) {
       final matchesCategory = _selectedCategories.isEmpty ||
           _selectedCategories.contains('Tất cả') ||
-          (post.categories).any(
+          post.categories.any(
             (cat) => _selectedCategories.contains(cat),
           );
 
-      // Logic tìm kiếm (Search Query):
       final query = _searchQuery.trim().toLowerCase();
       final matchesSearch = query.isEmpty ||
-          (post.title).toLowerCase().contains(query) ||
-          (post.summary).toLowerCase().contains(query);
+          post.title.toLowerCase().contains(query) ||
+          post.summary.toLowerCase().contains(query);
 
       return matchesCategory && matchesSearch;
     }).toList();
@@ -53,6 +142,7 @@ class _PostsPageState extends State<PostsPage> {
       backgroundColor: const Color(0xFFF8FAFC),
       body: CustomScrollView(
         slivers: [
+          // AppBar
           SliverAppBar(
             floating: true,
             pinned: true,
@@ -84,6 +174,7 @@ class _PostsPageState extends State<PostsPage> {
             ],
           ),
 
+          // Header Controls: Search & Category Chips
           SliverToBoxAdapter(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -92,11 +183,7 @@ class _PostsPageState extends State<PostsPage> {
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
                   child: TextField(
-                    onChanged: (value) {
-                      setState(() {
-                        _searchQuery = value;
-                      });
-                    },
+                    controller: _searchController,
                     decoration: InputDecoration(
                       hintText: 'Tìm kiếm bài viết, chủ đề...',
                       hintStyle: const TextStyle(
@@ -114,19 +201,17 @@ class _PostsPageState extends State<PostsPage> {
                                 size: 18,
                                 color: Color(0xFF94A3B8),
                               ),
-                              onPressed: () {
-                                setState(() {
-                                  _searchQuery = '';
-                                });
-                              },
+                              onPressed: () => _searchController.clear(),
                             )
                           : null,
                       filled: true,
                       fillColor: Colors.white,
-                      contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                      contentPadding:
+                          const EdgeInsets.symmetric(vertical: 14),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(16),
-                        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                        borderSide:
+                            const BorderSide(color: Color(0xFFE2E8F0)),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(16),
@@ -139,7 +224,7 @@ class _PostsPageState extends State<PostsPage> {
                   ),
                 ),
 
-                // 📍 3. Category Filter Chips (Cho phép Multi-select)
+                // Category Filter Chips
                 SizedBox(
                   height: 38,
                   child: ListView.separated(
@@ -167,7 +252,6 @@ class _PostsPageState extends State<PostsPage> {
                               } else {
                                 _selectedCategories.remove(cat);
                               }
-                              // Nếu bỏ chọn hết thì mặc định quay về 'Tất cả'
                               if (_selectedCategories.isEmpty) {
                                 _selectedCategories.add('Tất cả');
                               }
@@ -180,8 +264,9 @@ class _PostsPageState extends State<PostsPage> {
                           color: isSelected
                               ? Colors.white
                               : const Color(0xFF475569),
-                          fontWeight:
-                              isSelected ? FontWeight.bold : FontWeight.w500,
+                          fontWeight: isSelected
+                              ? FontWeight.bold
+                              : FontWeight.w500,
                           fontSize: 13,
                         ),
                         shape: RoundedRectangleBorder(
@@ -220,11 +305,11 @@ class _PostsPageState extends State<PostsPage> {
                     child: ListView.builder(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       scrollDirection: Axis.horizontal,
-                      itemCount: postProvider.posts.length > 3
+                      itemCount: articlePosts.length > 3
                           ? 3
-                          : postProvider.posts.length,
+                          : articlePosts.length,
                       itemBuilder: (context, index) {
-                        final post = postProvider.posts[index];
+                        final post = articlePosts[index];
                         return _buildFeaturedCard(context, post);
                       },
                     ),
@@ -247,7 +332,7 @@ class _PostsPageState extends State<PostsPage> {
             ),
           ),
 
-          // Danh sách bài viết chính
+          // Danh sách bài viết hoặc trạng thái trống.
           filteredPosts.isEmpty
               ? SliverFillRemaining(
                   hasScrollBody: false,
@@ -275,16 +360,18 @@ class _PostsPageState extends State<PostsPage> {
                 )
               : SliverPadding(
                   padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  sliver: SliverList(
-                    delegate: SliverChildBuilderDelegate((context, index) {
+                  sliver: SliverList.builder(
+                    itemCount: filteredPosts.length,
+                    itemBuilder: (context, index) {
                       final post = filteredPosts[index];
-
                       return Container(
                         margin: const EdgeInsets.only(bottom: 16.0),
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: const Color(0xFFF1F5F9)),
+                          border: Border.all(
+                            color: const Color(0xFFF1F5F9),
+                          ),
                           boxShadow: [
                             BoxShadow(
                               color: const Color(0xFF0F172A)
@@ -311,17 +398,18 @@ class _PostsPageState extends State<PostsPage> {
                             child: Padding(
                               padding: const EdgeInsets.all(16.0),
                               child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                                crossAxisAlignment:
+                                    CrossAxisAlignment.start,
                                 children: [
+                                  // Author Header
                                   Row(
                                     children: [
                                       CircleAvatar(
                                         radius: 18,
-                                        backgroundColor: const Color(
-                                          0xFFCCFBF1,
-                                        ),
+                                        backgroundColor:
+                                            const Color(0xFFCCFBF1),
                                         child: Text(
-                                          (post.author.isNotEmpty)
+                                          post.author.isNotEmpty
                                               ? post.author[0]
                                               : 'A',
                                           style: const TextStyle(
@@ -352,7 +440,8 @@ class _PostsPageState extends State<PostsPage> {
                                                   post.date,
                                                   style: const TextStyle(
                                                     fontSize: 11,
-                                                    color: Color(0xFF94A3B8),
+                                                    color:
+                                                        Color(0xFF94A3B8),
                                                   ),
                                                 ),
                                                 const SizedBox(width: 6),
@@ -360,7 +449,8 @@ class _PostsPageState extends State<PostsPage> {
                                                   '•',
                                                   style: TextStyle(
                                                     fontSize: 10,
-                                                    color: Color(0xFF94A3B8),
+                                                    color:
+                                                        Color(0xFF94A3B8),
                                                   ),
                                                 ),
                                                 const SizedBox(width: 6),
@@ -374,7 +464,8 @@ class _PostsPageState extends State<PostsPage> {
                                                   '5 phút đọc',
                                                   style: TextStyle(
                                                     fontSize: 11,
-                                                    color: Color(0xFF94A3B8),
+                                                    color:
+                                                        Color(0xFF94A3B8),
                                                   ),
                                                 ),
                                               ],
@@ -386,20 +477,23 @@ class _PostsPageState extends State<PostsPage> {
                                         icon: Icon(
                                           post.isBookMarked
                                               ? Icons.bookmark_rounded
-                                              : Icons.bookmark_border_rounded,
+                                              : Icons
+                                                  .bookmark_border_rounded,
                                           color: post.isBookMarked
                                               ? const Color(0xFF0F766E)
                                               : const Color(0xFF94A3B8),
                                           size: 20,
                                         ),
                                         onPressed: () {
-                                          postProvider.toggleBookmark(post.id);
+                                          postProvider
+                                              .toggleBookmark(post.id);
                                         },
                                       ),
                                     ],
                                   ),
                                   const SizedBox(height: 12),
 
+                                  // Post Content Title & Summary
                                   Text(
                                     post.title,
                                     style: const TextStyle(
@@ -410,7 +504,6 @@ class _PostsPageState extends State<PostsPage> {
                                     ),
                                   ),
                                   const SizedBox(height: 6),
-
                                   Text(
                                     post.summary,
                                     maxLines: 2,
@@ -423,7 +516,7 @@ class _PostsPageState extends State<PostsPage> {
                                   ),
                                   const SizedBox(height: 16),
 
-                                  // 📍 4. Hiển thị danh sách các Tags dạng Wrap
+                                  // Tags & Actions Row
                                   Row(
                                     mainAxisAlignment:
                                         MainAxisAlignment.spaceBetween,
@@ -432,9 +525,9 @@ class _PostsPageState extends State<PostsPage> {
                                         child: Wrap(
                                           spacing: 6,
                                           runSpacing: 4,
-                                          children: (post
-                                                  .categories) //Nếu bài viết không có danh mục thì bỏ hashtag
-                                              .map((cat) {
+                                          children:
+                                              (post.categories as List)
+                                                  .map((cat) {
                                             return Container(
                                               padding:
                                                   const EdgeInsets.symmetric(
@@ -442,20 +535,19 @@ class _PostsPageState extends State<PostsPage> {
                                                 vertical: 3,
                                               ),
                                               decoration: BoxDecoration(
-                                                color: const Color(
-                                                  0xFFCCFBF1,
-                                                ),
+                                                color:
+                                                    const Color(0xFFCCFBF1),
                                                 borderRadius:
                                                     BorderRadius.circular(
-                                                  6,
-                                                ),
+                                                        6),
                                               ),
                                               child: Text(
                                                 '#$cat',
                                                 style: const TextStyle(
                                                   fontSize: 11,
                                                   color: Color(0xFF0F766E),
-                                                  fontWeight: FontWeight.w600,
+                                                  fontWeight:
+                                                      FontWeight.w600,
                                                 ),
                                               ),
                                             );
@@ -465,11 +557,11 @@ class _PostsPageState extends State<PostsPage> {
                                       Row(
                                         children: [
                                           InkWell(
-                                            borderRadius: BorderRadius.circular(
-                                              12,
-                                            ),
+                                            borderRadius:
+                                                BorderRadius.circular(12),
                                             onTap: () {
-                                              postProvider.toggleLike(post.id);
+                                              postProvider
+                                                  .toggleLike(post.id);
                                             },
                                             child: Padding(
                                               padding:
@@ -481,40 +573,30 @@ class _PostsPageState extends State<PostsPage> {
                                                 children: [
                                                   Icon(
                                                     post.isLiked
-                                                        ? Icons.favorite_rounded
+                                                        ? Icons
+                                                            .favorite_rounded
                                                         : Icons
                                                             .favorite_border_rounded,
                                                     size: 16,
                                                     color: post.isLiked
                                                         ? Colors.redAccent
                                                         : const Color(
-                                                            0xFF64748B,
-                                                          ),
+                                                            0xFF64748B),
                                                   ),
                                                   const SizedBox(width: 4),
                                                   Text(
                                                     '${post.likeCount}',
-                                                    style: TextStyle(
+                                                    style: const TextStyle(
                                                       fontSize: 12,
-                                                      color: post.isLiked
-                                                          ? Colors.redAccent
-                                                          : const Color(
-                                                              0xFF64748B,
-                                                            ),
-                                                      fontWeight: post.isLiked
-                                                          ? FontWeight.bold
-                                                          : FontWeight.normal,
+                                                      color:
+                                                          Color(0xFF64748B),
+                                                      fontWeight:
+                                                          FontWeight.w500,
                                                     ),
                                                   ),
                                                 ],
                                               ),
                                             ),
-                                          ),
-                                          const SizedBox(width: 12),
-                                          const Icon(
-                                            Icons.share_outlined,
-                                            size: 16,
-                                            color: Color(0xFF64748B),
                                           ),
                                         ],
                                       ),
@@ -526,144 +608,10 @@ class _PostsPageState extends State<PostsPage> {
                           ),
                         ),
                       );
-                    }, childCount: filteredPosts.length),
+                    },
                   ),
                 ),
-          const SliverToBoxAdapter(child: SizedBox(height: 24)),
         ],
-      ),
-    );
-  }
-
-  String _getImageUrl(String postId) {
-    final Map<String, String> imageMap = {
-      '1': 'https://images.unsplash.com/photo-1528127269322-539801943592',
-      '2': 'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb',
-      '3': 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1',
-    };
-    return imageMap[postId] ??
-        'https://images.unsplash.com/photo-1528127269322-539801943592';
-  }
-
-  Widget _buildFeaturedCard(BuildContext context, dynamic post) {
-    return Container(
-      width: 280,
-      margin: const EdgeInsets.only(right: 12),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        image: DecorationImage(
-          image: NetworkImage(_getImageUrl(post.id)),
-          onError: (error, stackTrace) {},
-          fit: BoxFit.cover,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF0F766E).withValues(alpha: 0.25),
-            blurRadius: 12,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Colors.black.withValues(alpha: 0.2),
-              Colors.black.withValues(alpha: 0.85),
-            ],
-          ),
-        ),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            borderRadius: BorderRadius.circular(20),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => PostDetailPage(postId: post.id),
-                ),
-              );
-            },
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.25),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: const Text(
-                          'Trending',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                      const Icon(
-                        Icons.star_rounded,
-                        color: Colors.amber,
-                        size: 20,
-                      ),
-                    ],
-                  ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        post.title,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 15,
-                          height: 1.3,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Wrap(
-                        crossAxisAlignment: WrapCrossAlignment.center,
-                        children: [
-                          Text(
-                            post.author,
-                            style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.9),
-                              fontSize: 12,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            '•  ${post.date}',
-                            style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.7),
-                              fontSize: 11,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
       ),
     );
   }

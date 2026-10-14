@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../widgets/comments_bottom_sheet.dart';
 import '../provider/comment_provider.dart';
-
 import '../provider/post_provider.dart';
 
 class PostDetailPage extends StatelessWidget {
@@ -197,8 +196,7 @@ class PostDetailPage extends StatelessWidget {
               onPressed: () {
                 showModalBottomSheet(
                   context: context,
-                  isScrollControlled:
-                      true, // Giúp nâng khung khi bàn phím hiện lên
+                  isScrollControlled: true,
                   backgroundColor: Colors.transparent,
                   builder: (context) => CommentsBottomSheet(postId: post.id),
                 );

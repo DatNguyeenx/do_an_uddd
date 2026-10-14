@@ -224,6 +224,15 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ],
               ),
+              const SizedBox(height: 12),
+              Center(
+                child: TextButton.icon(
+                  onPressed: () => Navigator.pushNamed(context, '/admin'),
+                  icon: const Icon(Icons.admin_panel_settings_outlined, size: 18),
+                  label: const Text('Mở giao diện quản trị demo'),
+                  style: TextButton.styleFrom(foregroundColor: primaryColor),
+                ),
+              ),
             ],
           ),
         ),
