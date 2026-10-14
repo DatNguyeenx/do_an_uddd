@@ -1,11 +1,8 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:http/http.dart' as http;
-import 'package:flutter_polyline_points/flutter_polyline_points.dart';
-
-// API Key dự án của nhóm
-const String googleApiKey = 'AIzaSyALKM5Q89C-0nUrkkXG-5xQbB5QcE2I6Tg';
 
 class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
@@ -14,158 +11,190 @@ class MapScreen extends StatefulWidget {
   State<MapScreen> createState() => _MapScreenState();
 }
 
-class _MapScreenState extends State<MapScreen> {
-  late GoogleMapController mapController;
+class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
+  final MapController _mapController = MapController();
 
-  // Controllers cho ô nhập liệu
-  final TextEditingController _originController = TextEditingController(text: 'Trường ĐH Công Thương TP.HCM');
-  final TextEditingController _destinationController = TextEditingController(text: 'Chợ Bến Thành');
+  // 1. Để trống TextField mặc định
+  final TextEditingController _originController = TextEditingController();
+  final TextEditingController _destinationController = TextEditingController();
 
-  // Trạng thái lộ trình
-  String _selectedMode = 'driving'; // driving, motorcycle, walking
-  final Set<Marker> _markers = {};
-  final Set<Polyline> _polylines = {};
+  String _selectedMode = 'car';
+  String _selectingField = 'origin'; // Mặc định mở lên sẽ ưu tiên chọn điểm đi trước
 
-  // Tọa độ đang được chọn để tìm đường
-  LatLng _currentOrigin = const LatLng(10.8061, 106.6262);
-  LatLng _currentDestination = const LatLng(10.7725, 106.6980);
+  // 2. Chuyển thành Nullable (có thể rỗng) vì lúc đầu chưa có điểm nào
+  LatLng? _currentOrigin;
+  LatLng? _currentDestination;
+  
+  // Tọa độ trung tâm mặc định khi vừa mở map (Ví dụ: Trung tâm TP.HCM)
+  final LatLng _defaultCenter = const LatLng(10.8061, 106.6262); 
+
+  List<LatLng> _routePoints = [];
+  bool _isLoading = false;
+
+  String _distanceInfo = '';
+  String _durationInfo = '';
 
   @override
   void initState() {
     super.initState();
-    _setupInitialRoute();
+    // 3. XÓA hàm _fetchRoutePolyline() 
   }
 
-  void _onMapCreated(GoogleMapController controller) {
-    mapController = controller;
-    _fitRoute();
-  }
-
-  // Khởi tạo Marker và gọi API vẽ đường ban đầu
-  void _setupInitialRoute() {
-    _updateMarkers();
-    _fetchRoutePolyline();
-  }
-
-  // Cập nhật lại các điểm Marker trên bản đồ
-  void _updateMarkers() {
-    setState(() {
-      _markers.clear();
-      _markers.add(
-        Marker(
-          markerId: const MarkerId('origin'),
-          position: _currentOrigin,
-          infoWindow: const InfoWindow(title: 'Điểm đi'),
-          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue),
-        ),
-      );
-      _markers.add(
-        Marker(
-          markerId: const MarkerId('destination'),
-          position: _currentDestination,
-          infoWindow: const InfoWindow(title: 'Điểm đến'),
-          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
-        ),
-      );
-    });
-  }
-
-  // Hàm gọi Google Routes API và vẽ đường chi tiết
-  Future<void> _fetchRoutePolyline() async {
-    // Chuyển đổi phương tiện sang chuẩn của Routes API
-    String routingPreferenceMode = 'DRIVE';
-    if (_selectedMode == 'motorcycle') routingPreferenceMode = 'TWO_WHEELER';
-    if (_selectedMode == 'walking') routingPreferenceMode = 'WALK';
-
-    final url = Uri.parse('https://routes.googleapis.com/directions/v2:computeRoutes');
-
-    final body = jsonEncode({
-      "origin": {
-        "location": {
-          "latLng": {
-            "latitude": _currentOrigin.latitude,
-            "longitude": _currentOrigin.longitude,
-          }
-        }
-      },
-      "destination": {
-        "location": {
-          "latLng": {
-            "latitude": _currentDestination.latitude,
-            "longitude": _currentDestination.longitude,
-          }
-        }
-      },
-      "travelMode": routingPreferenceMode,
-      "routingPreference": _selectedMode == 'walking' ? null : "TRAFFIC_AWARE",
-    });
-
-    try {
-      final response = await http.post(
-        url,
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Goog-Api-Key': googleApiKey,
-          'X-Goog-FieldMask': 'routes.duration,routes.distanceMeters,routes.polyline.encodedPolyline',
-        },
-        body: body,
-      );
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        if (data['routes'] != null && data['routes'].isNotEmpty) {
-          final encodedPolyline = data['routes'][0]['polyline']['encodedPolyline'];
-
-          // Giải mã chuỗi polyline thành danh sách điểm
-          final PolylinePoints polylinePoints = PolylinePoints(apiKey: googleApiKey);
-          
-          List<PointLatLng> decodedPoints = PolylinePoints.decodePolyline(encodedPolyline);
-
-          List<LatLng> polylineCoordinates = decodedPoints
-              .map((point) => LatLng(point.latitude, point.longitude))
-              .toList();
-
-          setState(() {
-            _polylines.clear();
-            _polylines.add(
-              Polyline(
-                polylineId: const PolylineId('real_route'),
-                points: polylineCoordinates,
-                color: const Color(0xFF0F766E), // Màu xanh Việt Đi
-                width: 5,
-                patterns: _selectedMode == 'walking' 
-                    ? [PatternItem.dash(20), PatternItem.gap(10)] 
-                    : [], // Đi bộ nét đứt, lái xe nét liền
-              ),
-            );
-          });
-          
-          // Tự động chỉnh lại góc nhìn camera khi vẽ đường mới
-          _fitRoute();
-        }
-      } else {
-        debugPrint('Lỗi gọi Routes API: ${response.body}');
-      }
-    } catch (e) {
-      debugPrint('Ngoại lệ khi gọi API: $e');
+  String _getRoutingServerProfile() {
+    switch (_selectedMode) {
+      case 'walking':
+        return 'routed-foot';
+      case 'motorcycle':
+        return 'routed-bike';
+      case 'driving':
+      default:
+        return 'routed-car';
     }
   }
 
-  // Chỉnh góc nhìn camera bao quát toàn bộ lộ trình
+  Future<String> _getAddressFromLatLng(LatLng point) async {
+    final url = Uri.parse(
+        'https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${point.latitude}&lon=${point.longitude}');
+    try {
+      final response = await http.get(url, headers: {'User-Agent': 'com.vietdighep.app'});
+      if (response.statusCode == 200) {
+        final data = jsonDecode(utf8.decode(response.bodyBytes));
+        String displayName = data['display_name'] ?? '';
+        
+        if (displayName.isNotEmpty) {
+          List<String> parts = displayName.split(', ');
+          return parts.take(3).join(', ');
+        }
+      }
+    } catch (e) {
+      debugPrint('Lỗi Geocoding: $e');
+    }
+    return '${point.latitude.toStringAsFixed(4)}, ${point.longitude.toStringAsFixed(4)}';
+  }
+
+  Future<void> _fetchRoutePolyline() async {
+    // 4. CẤM gọi API nếu 1 trong 2 điểm chưa được chọn
+    if (_currentOrigin == null || _currentDestination == null) return;
+
+    setState(() => _isLoading = true);
+    final serverProfile = _getRoutingServerProfile();
+    
+    final url = Uri.parse(
+      'https://routing.openstreetmap.de/$serverProfile/route/v1/driving/'
+      '${_currentOrigin!.longitude},${_currentOrigin!.latitude};'
+      '${_currentDestination!.longitude},${_currentDestination!.latitude}'
+      '?overview=full&geometries=geojson',
+    );
+
+    try {
+      final response = await http.get(url, headers: {'User-Agent': 'com.vietdighep.app'});
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['routes'] != null && (data['routes'] as List).isNotEmpty) {
+          final route = data['routes'][0];
+          
+          final coordinates = route['geometry']['coordinates'] as List;
+          final points = coordinates.map((coord) {
+            return LatLng((coord[1] as num).toDouble(), (coord[0] as num).toDouble());
+          }).toList();
+
+          final double distanceMeters = route['distance'].toDouble();
+          final double durationSeconds = route['duration'].toDouble();
+
+          setState(() {
+            _routePoints = points;
+            _distanceInfo = '${(distanceMeters / 1000).toStringAsFixed(1)} km';
+            
+            int minutes = (durationSeconds / 60).round();
+            if (minutes >= 60) {
+              _durationInfo = '${minutes ~/ 60}h ${minutes % 60}p';
+            } else {
+              _durationInfo = '${minutes} phút';
+            }
+          });
+
+          _fitRoute();
+        }
+      }
+    } catch (e) {
+      debugPrint('Lỗi Routing: $e');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
   void _fitRoute() {
-    Future.delayed(const Duration(milliseconds: 500), () {
-      LatLngBounds bounds = LatLngBounds(
-        southwest: LatLng(
-          _currentDestination.latitude < _currentOrigin.latitude ? _currentDestination.latitude : _currentOrigin.latitude,
-          _currentDestination.longitude < _currentOrigin.longitude ? _currentDestination.longitude : _currentOrigin.longitude,
-        ),
-        northeast: LatLng(
-          _currentDestination.latitude > _currentOrigin.latitude ? _currentDestination.latitude : _currentOrigin.latitude,
-          _currentDestination.longitude > _currentOrigin.longitude ? _currentDestination.longitude : _currentOrigin.longitude,
+    // Nếu chưa đủ 2 điểm thì không zoom bao quát
+    if (_currentOrigin == null || _currentDestination == null) return;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final bounds = LatLngBounds.fromPoints([_currentOrigin!, _currentDestination!]);
+      _mapController.fitCamera(
+        CameraFit.bounds(
+          bounds: bounds,
+          padding: const EdgeInsets.only(top: 250, bottom: 50, left: 50, right: 50),
         ),
       );
-      mapController.animateCamera(CameraUpdate.newLatLngBounds(bounds, 50));
     });
+  }
+
+  void _animatedMapMove(LatLng destLocation, double destZoom) {
+    final latTween = Tween<double>(begin: _mapController.camera.center.latitude, end: destLocation.latitude);
+    final lngTween = Tween<double>(begin: _mapController.camera.center.longitude, end: destLocation.longitude);
+    final zoomTween = Tween<double>(begin: _mapController.camera.zoom, end: destZoom);
+
+    final controller = AnimationController(duration: const Duration(milliseconds: 350), vsync: this);
+    final Animation<double> animation = CurvedAnimation(parent: controller, curve: Curves.fastOutSlowIn);
+
+    controller.addListener(() {
+      _mapController.move(
+        LatLng(latTween.evaluate(animation), lngTween.evaluate(animation)),
+        zoomTween.evaluate(animation),
+      );
+    });
+
+    animation.addStatusListener((status) {
+      if (status == AnimationStatus.completed || status == AnimationStatus.dismissed) {
+        controller.dispose();
+      }
+    });
+
+    controller.forward();
+  }
+
+  void _onMapTap(TapPosition tapPosition, LatLng point) async {
+    final isOrigin = _selectingField == 'origin';
+
+    setState(() {
+      if (isOrigin) {
+        _currentOrigin = point;
+        _originController.text = 'Đang tìm địa chỉ...';
+        // Sau khi chấm điểm đi, tự động chuyển sang trạng thái chờ chấm điểm đến
+        if (_currentDestination == null) {
+           _selectingField = 'destination'; 
+        }
+      } else {
+        _currentDestination = point;
+        _destinationController.text = 'Đang tìm địa chỉ...';
+      }
+    });
+
+    // Chỉ gọi vẽ đường khi ĐÃ CÓ ĐỦ cả điểm đi và điểm đến
+    if (_currentOrigin != null && _currentDestination != null) {
+      _fetchRoutePolyline();
+    }
+
+    final address = await _getAddressFromLatLng(point);
+    if (mounted) {
+      setState(() {
+        if (isOrigin) {
+          _originController.text = address;
+        } else {
+          _destinationController.text = address;
+        }
+      });
+    }
   }
 
   @override
@@ -173,22 +202,88 @@ class _MapScreenState extends State<MapScreen> {
     return Scaffold(
       body: Stack(
         children: [
-          // Lớp 1: Bản đồ Google Map
-          GoogleMap(
-            onMapCreated: _onMapCreated,
-            initialCameraPosition: CameraPosition(target: _currentOrigin, zoom: 14.0),
-            markers: _markers,
-            polylines: _polylines,
-            myLocationEnabled: true,
-            myLocationButtonEnabled: false,
-            zoomControlsEnabled: false,
+          FlutterMap(
+            mapController: _mapController,
+            options: MapOptions(
+              initialCenter: _defaultCenter, // Hiển thị trung tâm mặc định
+              initialZoom: 13.0,
+              onTap: _onMapTap,
+              interactionOptions: const InteractionOptions(flags: InteractiveFlag.all),
+            ),
+            children: [
+              TileLayer(
+                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                userAgentPackageName: 'com.vietdighep.app',
+              ),
+              if (_routePoints.isNotEmpty)
+                PolylineLayer(
+                  polylines: [
+                    Polyline(
+                      points: _routePoints,
+                      color: const Color(0xFF0F766E),
+                      strokeWidth: 5.0,
+                      pattern: _selectedMode == 'walking'
+                          ? StrokePattern.dashed(segments: [10, 8])
+                          : const StrokePattern.solid(),
+                    ),
+                  ],
+                ),
+              MarkerLayer(
+                markers: [
+                  // Kiểm tra nếu khác null mới vẽ Marker lên map
+                  if (_currentOrigin != null)
+                    Marker(
+                      point: _currentOrigin!,
+                      width: 50,
+                      height: 50,
+                      alignment: Alignment.topCenter,
+                      child: const Icon(Icons.location_on, color: Colors.blue, size: 40),
+                    ),
+                  if (_currentDestination != null)
+                    Marker(
+                      point: _currentDestination!,
+                      width: 50,
+                      height: 50,
+                      alignment: Alignment.topCenter,
+                      child: const Icon(Icons.location_on, color: Colors.red, size: 40),
+                    ),
+                ],
+              ),
+            ],
           ),
 
-          // Lớp 2: Bảng điều khiển tìm đường (Routing Panel)
+          if (_isLoading)
+            const Positioned(
+              top: 0, left: 0, right: 0,
+              child: LinearProgressIndicator(color: Color(0xFF0F766E)),
+            ),
+
           Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
+            right: 16,
+            bottom: 40,
+            child: Column(
+              children: [
+                FloatingActionButton(
+                  heroTag: 'zoomIn',
+                  mini: true,
+                  backgroundColor: Colors.white,
+                  onPressed: () => _animatedMapMove(_mapController.camera.center, _mapController.camera.zoom + 1.2),
+                  child: const Icon(Icons.add, color: Colors.black87),
+                ),
+                const SizedBox(height: 8),
+                FloatingActionButton(
+                  heroTag: 'zoomOut',
+                  mini: true,
+                  backgroundColor: Colors.white,
+                  onPressed: () => _animatedMapMove(_mapController.camera.center, _mapController.camera.zoom - 1.2),
+                  child: const Icon(Icons.remove, color: Colors.black87),
+                ),
+              ],
+            ),
+          ),
+
+          Positioned(
+            top: 0, left: 0, right: 0,
             child: SafeArea(
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
@@ -197,24 +292,21 @@ class _MapScreenState extends State<MapScreen> {
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: [
-                      BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, 4)),
+                      BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 10, offset: const Offset(0, 4)),
                     ],
                   ),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // Header có nút Back
                       Row(
                         children: [
                           IconButton(
                             icon: const Icon(Icons.arrow_back),
-                            onPressed: () => Navigator.pop(context),
+                            onPressed: () => Navigator.maybePop(context),
                           ),
                           const Text('Chỉ đường', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                         ],
                       ),
-                      
-                      // Thanh chọn phương tiện
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 16.0),
                         child: Row(
@@ -226,75 +318,116 @@ class _MapScreenState extends State<MapScreen> {
                           ],
                         ),
                       ),
-                      const Divider(height: 24),
-
-                      // Ô nhập Điểm đi và Điểm đến
+                      const Divider(height: 20),
                       Padding(
-                        padding: const EdgeInsets.only(left: 16, right: 16, bottom: 16),
+                        padding: const EdgeInsets.only(left: 16, right: 16, bottom: 8),
                         child: Row(
                           children: [
-                            // Cột icon chấm tròn và đường kẻ
                             Column(
                               children: [
                                 const Icon(Icons.radio_button_checked, color: Colors.blue, size: 16),
-                                Container(width: 2, height: 30, color: Colors.grey.shade300),
+                                Container(width: 2, height: 36, color: Colors.grey.shade300),
                                 const Icon(Icons.location_on, color: Colors.red, size: 16),
                               ],
                             ),
                             const SizedBox(width: 12),
-                            // Cột TextField
                             Expanded(
                               child: Column(
                                 children: [
-                                  TextField(
-                                    controller: _originController,
-                                    readOnly: true, // Tạm thời để readOnly vì chưa làm Google Places
-                                    decoration: InputDecoration(
-                                      hintText: 'Vị trí của bạn',
-                                      filled: true,
-                                      fillColor: Colors.grey.shade100,
-                                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+                                  GestureDetector(
+                                    onTap: () => setState(() => _selectingField = 'origin'),
+                                    child: AbsorbPointer(
+                                      child: TextField(
+                                        controller: _originController,
+                                        style: const TextStyle(fontSize: 14),
+                                        decoration: InputDecoration(
+                                          hintText: 'Chọn điểm đi',
+                                          filled: true,
+                                          fillColor: _selectingField == 'origin' ? Colors.blue.shade50 : Colors.grey.shade100,
+                                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                          border: OutlineInputBorder(
+                                            borderRadius: BorderRadius.circular(8),
+                                            borderSide: _selectingField == 'origin' ? const BorderSide(color: Colors.blue, width: 1.5) : BorderSide.none,
+                                          ),
+                                        ),
+                                      ),
                                     ),
                                   ),
-                                  const SizedBox(height: 12),
-                                  TextField(
-                                    controller: _destinationController,
-                                    readOnly: true,
-                                    decoration: InputDecoration(
-                                      hintText: 'Chọn điểm đến',
-                                      filled: true,
-                                      fillColor: Colors.grey.shade100,
-                                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+                                  const SizedBox(height: 10),
+                                  GestureDetector(
+                                    onTap: () => setState(() => _selectingField = 'destination'),
+                                    child: AbsorbPointer(
+                                      child: TextField(
+                                        controller: _destinationController,
+                                        style: const TextStyle(fontSize: 14),
+                                        decoration: InputDecoration(
+                                          hintText: 'Chọn điểm đến',
+                                          filled: true,
+                                          fillColor: _selectingField == 'destination' ? Colors.red.shade50 : Colors.grey.shade100,
+                                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                          border: OutlineInputBorder(
+                                            borderRadius: BorderRadius.circular(8),
+                                            borderSide: _selectingField == 'destination' ? const BorderSide(color: Colors.red, width: 1.5) : BorderSide.none,
+                                          ),
+                                        ),
+                                      ),
                                     ),
                                   ),
                                 ],
                               ),
                             ),
-                            const SizedBox(width: 12),
-                            // Nút hoán đổi vị trí
+                            const SizedBox(width: 8),
                             IconButton(
-                              icon: const Icon(Icons.swap_vert),
+                              icon: const Icon(Icons.swap_vert, size: 28),
                               onPressed: () {
-                                // Đảo ngược text
                                 String tempText = _originController.text;
                                 _originController.text = _destinationController.text;
                                 _destinationController.text = tempText;
 
-                                // Đảo ngược tọa độ
-                                LatLng tempLatLng = _currentOrigin;
+                                LatLng? tempLatLng = _currentOrigin;
                                 _currentOrigin = _currentDestination;
                                 _currentDestination = tempLatLng;
 
-                                // Cập nhật marker và vẽ lại đường
-                                _updateMarkers();
-                                _fetchRoutePolyline();
+                                if (_currentOrigin != null && _currentDestination != null) {
+                                  _fetchRoutePolyline();
+                                } else {
+                                  // Nếu hoán đổi mà bị khuyết 1 điểm thì xóa đường đi cũ
+                                  setState(() {
+                                    _routePoints.clear();
+                                    _distanceInfo = '';
+                                  });
+                                }
                               },
-                            )
+                            ),
                           ],
                         ),
                       ),
+                      
+                      if (_distanceInfo.isNotEmpty) ...[
+                        const Divider(height: 1),
+                        Container(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade50,
+                            borderRadius: const BorderRadius.only(
+                              bottomLeft: Radius.circular(16),
+                              bottomRight: Radius.circular(16),
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.route, color: Color(0xFF0F766E), size: 20),
+                              const SizedBox(width: 6),
+                              Text(_distanceInfo, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF0F766E))),
+                              const SizedBox(width: 24),
+                              const Icon(Icons.access_time_filled, color: Color(0xFF0F766E), size: 20),
+                              const SizedBox(width: 6),
+                              Text(_durationInfo, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF0F766E))),
+                            ],
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -306,29 +439,27 @@ class _MapScreenState extends State<MapScreen> {
     );
   }
 
-  // Widget nút chọn phương tiện
   Widget _buildTransportButton(String mode, IconData icon) {
     bool isSelected = _selectedMode == mode;
     return GestureDetector(
       onTap: () {
         if (_selectedMode != mode) {
-          setState(() {
-            _selectedMode = mode;
-          });
-          // Gọi API vẽ lại đường đi theo phương tiện mới
-          _fetchRoutePolyline(); 
+          setState(() => _selectedMode = mode);
+          if (_currentOrigin != null && _currentDestination != null) {
+            _fetchRoutePolyline();
+          }
         }
       },
       child: Container(
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF0F766E).withOpacity(0.1) : Colors.transparent,
+          color: isSelected ? const Color(0xFF0F766E).withOpacity(0.12) : Colors.transparent,
           borderRadius: BorderRadius.circular(8),
         ),
         child: Icon(
           icon,
           color: isSelected ? const Color(0xFF0F766E) : Colors.grey.shade600,
-          size: 28,
+          size: 26,
         ),
       ),
     );
